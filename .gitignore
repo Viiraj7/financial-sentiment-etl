@@ -1,0 +1,27 @@
+#
+# .gitignore
+#
+# This file tells Git which files and folders to completely ignore.
+#
+
+# Ignore the Python virtual environment folder. This is critical.
+venv/
+.venv/
+
+# Ignore Python's cache files
+__pycache__/
+*.pyc
+
+# Ignore the SQLite database file. Data should not be in version control.
+*.db
+*.db-journal
+
+# Ignore log files
+*.log
+
+# Ignore IDE/editor-specific files
+.vscode/
+.idea/
+
+# Ignore operating system files (e.g., for macOS)
+.DS_Store

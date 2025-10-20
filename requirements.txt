@@ -1,0 +1,11 @@
+# For Web Scraping
+requests
+beautifulsoup4
+selenium
+webdriver-manager
+
+# For Sentiment Analysis
+vaderSentiment
+
+# For reading the configuration file
+PyYAML
