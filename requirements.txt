@@ -1,11 +1,12 @@
 # For Web Scraping
-requests
-beautifulsoup4
-selenium
-webdriver-manager
+requests==2.32.3
+beautifulsoup4==4.12.3
+selenium==4.22.0
+webdriver-manager==4.0.1
 
-# For Sentiment Analysis
-vaderSentiment
+# For Reading Configuration
+PyYAML==6.0.1
 
-# For reading the configuration file
-PyYAML
+# For AI/ML Model Handling (FinBERT) - Updated Versions
+torch==2.3.1
+transformers==4.41.2
