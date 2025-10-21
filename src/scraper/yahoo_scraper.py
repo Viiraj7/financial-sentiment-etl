@@ -1,6 +1,6 @@
 #
 # src/scraper/yahoo_scraper.py
-# VERSION 2.3: Added stability options to prevent SSL/handshake errors.
+# VERSION 3.0: Added robust cookie banner handling. This is the final version.
 #
 
 import time
@@ -14,6 +14,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from src.utils.config_loader import load_config
 from src.utils.logger import logger
@@ -33,14 +34,12 @@ def scrape_yahoo() -> List[Dict[str, str]]:
 
     logger.info(f"Starting scrape for Yahoo Finance: {YAHOO_URL}")
 
-    # --- THE FIX: ADDED STABILITY OPTIONS ---
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument(f"user-agent={USER_AGENT}")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--log-level=3")
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    # These arguments are crucial for preventing common SSL/handshake errors.
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--ignore-certificate-errors')
@@ -54,8 +53,27 @@ def scrape_yahoo() -> List[Dict[str, str]]:
         logger.info("Selenium WebDriver started successfully.")
         driver.get(YAHOO_URL)
         
-        wait = WebDriverWait(driver, 20) # Increased timeout
-        wait.until(EC.presence_of_element_located((By.ID, "Fin-Stream")))
+        # --- THE FIX: HANDLE THE COOKIE BANNER ---
+        # We will try to find and click the "Accept all" button.
+        # We put this in a try/except block because the banner may not
+        # always appear, and we don't want the script to crash if it's not there.
+        try:
+            # Wait a maximum of 5 seconds for the button to appear.
+            cookie_wait = WebDriverWait(driver, 5)
+            # Find the button by its specific CSS selector (found by inspecting the page).
+            accept_button = cookie_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[name="agree"]')))
+            accept_button.click()
+            logger.info("Clicked the cookie consent 'Accept all' button.")
+            # Give the page a moment to react after the click.
+            time.sleep(1)
+        except TimeoutException:
+            # This is not an error. It just means the cookie banner wasn't found,
+            # which is fine. We can continue.
+            logger.debug("Cookie consent banner not found or already handled.")
+        
+        # Now that the cookie banner is handled, we wait for the main news content.
+        content_wait = WebDriverWait(driver, 20)
+        content_wait.until(EC.presence_of_element_located((By.ID, "Fin-Stream")))
 
         logger.info(f"Scrolling {SCROLL_COUNT} times to load dynamic content...")
         for _ in range(SCROLL_COUNT):

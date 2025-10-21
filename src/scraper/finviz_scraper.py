@@ -1,6 +1,6 @@
 #
 # src/scraper/finviz_scraper.py
-# VERSION 2.1: Updated with the correct HTML selectors.
+# VERSION 2.2: Final corrected version with updated selectors.
 #
 
 import requests
@@ -29,14 +29,14 @@ def scrape_finviz() -> List[Dict[str, str]]:
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # THE FIX: Updated class name from 'nn_news-table' to 'news-table'
+        # THE FIX: Updated class name to 'news-table'
         news_table = soup.find('table', class_='news-table')
         
         if not news_table:
             logger.warning("Could not find the news table on the Finviz page.")
             return articles
 
-        # THE FIX: Updated class name from 'nn-tab-link' to 'news-tab-link'
+        # THE FIX: Updated class name to 'news-tab-link'
         all_headline_tags = news_table.find_all('a', class_='news-tab-link')
         
         for tag in all_headline_tags:
@@ -47,11 +47,8 @@ def scrape_finviz() -> List[Dict[str, str]]:
             
         logger.info(f"Successfully scraped {len(articles)} articles from Finviz.")
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error during request to Finviz: {e}")
-        return []
     except Exception as e:
-        logger.error(f"An unexpected error occurred during Finviz scraping: {e}")
+        logger.error(f"An unexpected error occurred during Finviz scraping: {e}", exc_info=True)
         return []
     
     return articles
