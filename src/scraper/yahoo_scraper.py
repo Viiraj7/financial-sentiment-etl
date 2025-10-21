@@ -1,6 +1,6 @@
 #
 # src/scraper/yahoo_scraper.py
-# VERSION 3.0: Added robust cookie banner handling. This is the final version.
+# VERSION 4.0: Final production version with page load strategy and robust cookie handling.
 #
 
 import time
@@ -44,34 +44,35 @@ def scrape_yahoo() -> List[Dict[str, str]]:
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--allow-running-insecure-content')
+    
+    # --- THE ULTIMATE FIX 1: Page Load Strategy ---
+    # This tells Selenium not to wait for the full page to load (with ads, trackers, etc.).
+    # It will proceed as soon as the main HTML is ready, which is much faster and more stable.
+    options.page_load_strategy = 'eager'
 
     driver = None
     try:
         service = ChromeService(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         
+        # --- THE ULTIMATE FIX 2: Page Load Timeout ---
+        # Set a maximum time for the page to load. If it takes longer, it will stop and raise an error.
+        # This prevents the script from hanging indefinitely.
+        driver.set_page_load_timeout(30)
+
         logger.info("Selenium WebDriver started successfully.")
         driver.get(YAHOO_URL)
         
-        # --- THE FIX: HANDLE THE COOKIE BANNER ---
-        # We will try to find and click the "Accept all" button.
-        # We put this in a try/except block because the banner may not
-        # always appear, and we don't want the script to crash if it's not there.
         try:
-            # Wait a maximum of 5 seconds for the button to appear.
-            cookie_wait = WebDriverWait(driver, 5)
-            # Find the button by its specific CSS selector (found by inspecting the page).
-            accept_button = cookie_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[name="agree"]')))
+            cookie_wait = WebDriverWait(driver, 10) # Wait up to 10 seconds for the banner
+            # This is a more robust selector for the "Accept all" button.
+            accept_button = cookie_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'form[action="/consent"] .btn.primary')))
             accept_button.click()
             logger.info("Clicked the cookie consent 'Accept all' button.")
-            # Give the page a moment to react after the click.
-            time.sleep(1)
+            time.sleep(2) # Give the page a moment to react
         except TimeoutException:
-            # This is not an error. It just means the cookie banner wasn't found,
-            # which is fine. We can continue.
             logger.debug("Cookie consent banner not found or already handled.")
         
-        # Now that the cookie banner is handled, we wait for the main news content.
         content_wait = WebDriverWait(driver, 20)
         content_wait.until(EC.presence_of_element_located((By.ID, "Fin-Stream")))
 
