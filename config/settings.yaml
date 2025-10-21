@@ -17,8 +17,6 @@ logging:
 # ==========================
 scraper:
   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-
-  # URLs for our two reliable, static news sources
+  
   sources:
-    barchart: "https://www.barchart.com/news/stocks"
-    seeking_alpha: "https://seekingalpha.com/market-news"
+    yahoo_rss: "https://finance.yahoo.com/news/rssindex"
