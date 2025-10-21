@@ -1,33 +1,22 @@
 #
 # src/etl/pipeline.py
+# DEFINITIVE VERSION: Orchestrates the pipeline with the new, reliable scrapers.
 #
-# This script orchestrates the entire ETL process, connecting all the
-# individual modules to form a cohesive data pipeline.
-#
-
-# --- 1. Imports ---
-# Import the functions from our other modules
-from src.scraper import finviz_scraper, yahoo_scraper
+from src.scraper import barchart_scraper, seeking_alpha_scraper # UPDATED
 from src.nlp import sentiment
 from src.database import db_manager
 from src.utils.logger import logger
 
 def run_pipeline():
-    """
-    Executes the full ETL (Extract, Transform, Load) pipeline.
-    """
     logger.info("=============================================")
     logger.info("====== Starting ETL Pipeline Run ======")
     logger.info("=============================================")
     
-    # --- 2. EXTRACT ---
-    # Call both scrapers to get lists of raw article data.
     logger.info("--- Phase 1: EXTRACT ---")
-    finviz_articles = finviz_scraper.scrape_finviz()
-    yahoo_articles = yahoo_scraper.scrape_yahoo()
+    barchart_articles = barchart_scraper.scrape_barchart() # UPDATED
+    seeking_alpha_articles = seeking_alpha_scraper.scrape_seeking_alpha() # UPDATED
     
-    # Combine the lists into one master list for processing.
-    all_articles = finviz_articles + yahoo_articles
+    all_articles = barchart_articles + seeking_alpha_articles # UPDATED
     
     if not all_articles:
         logger.warning("No articles found from any source. Ending pipeline run.")
@@ -35,36 +24,29 @@ def run_pipeline():
         
     logger.info(f"Extracted a total of {len(all_articles)} articles.")
     
-    # --- 3. TRANSFORM and LOAD ---
-    # Loop through each article one-by-one to process and save it.
     logger.info("--- Phase 2 & 3: TRANSFORM and LOAD ---")
     
     processed_count = 0
+    seen_urls = set()
+
     for article in all_articles:
-        headline = article.get('headline')
         url = article.get('url')
-        source = 'Finviz' if 'finviz.com' in url else 'Yahoo'
+        headline = article.get('headline')
         
-        # Basic validation to ensure we have a headline to process.
-        if not headline:
-            logger.warning(f"Skipping article with no headline from source: {source}")
+        if not url or not headline or url in seen_urls:
             continue
+        
+        seen_urls.add(url)
+        source = 'Seeking Alpha' if 'seekingalpha.com' in url else 'Barchart'
 
-        logger.debug(f"Processing article: '{headline[:60]}...'")
+        logger.debug(f"Processing article from {source}: '{headline[:60]}...'")
 
-        # --- TRANSFORM ---
-        # Call our NLP module to get the sentiment analysis.
         finbert_result = sentiment.analyze_sentiment(headline)
         
-        # If the analysis fails for any reason, finbert_result will be empty.
-        # We log a warning and skip to the next article.
         if not finbert_result:
-            logger.warning(f"Sentiment analysis failed for headline: '{headline}'")
+            logger.warning(f"Sentiment analysis failed for: '{headline}'")
             continue
             
-        # --- LOAD ---
-        # Call our database manager to insert the processed data.
-        # The db_manager handles duplicate prevention internally.
         db_manager.insert_article(
             source=source,
             headline=headline,
@@ -73,5 +55,5 @@ def run_pipeline():
         )
         processed_count += 1
 
-    logger.info(f"Successfully processed and attempted to load {processed_count} articles.")
+    logger.info(f"Successfully processed and attempted to load {processed_count} unique articles.")
     logger.info("====== ETL Pipeline Run Finished ======")
